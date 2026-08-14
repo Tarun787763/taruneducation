@@ -53,7 +53,7 @@ st.write("---")
 # =========================================================
 st.markdown('<div class="feature-header">📹 लाइव क्लास रूम (Live Classes)</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-box">', unsafe_allow_html=True)
-col1, col2 = st.columns()
+col1, col2 = st.columns(2)
 with col1:
     live_class_url = "https://jit.si" 
     st.write("🔴 *लाइव क्लास में शामिल होने के लिए नीचे दिए गए बटन पर क्लिक करें:*")
