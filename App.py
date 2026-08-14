@@ -1,160 +1,198 @@
 import streamlit as st
-import sqlite3
-import pandas as pd
+import datetime
 
-conn = sqlite3.connect("education.db", check_same_thread=False, timeout=30)
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    username TEXT PRIMARY KEY,
-    password TEXT,
-    role TEXT DEFAULT 'student',
-    points INTEGER DEFAULT 0
+# 1. ऐप का मुख्य सेटिंग्स (Page Configurations)
+st.set_page_config(
+    page_title="स्मार्ट डिजिटल एकेडमी प्रो", 
+    page_icon="🎓", 
+    layout="wide"
 )
-""")
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
-)
-""")
+# ऐप की सुंदर और आधुनिक डिज़ाइन (CSS Styling)
+st.markdown("""
+    <style>
+    .main-title { font-size:42px; font-weight:bold; color:#1E3A8A; text-align:center; margin-bottom:5px; }
+    .sub-title { font-size:18px; color:#4B5563; text-align:center; margin-bottom:25px; }
+    .section-box { padding: 20px; border-radius: 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; margin-bottom: 25px; }
+    .feature-header { font-size:24px; font-weight:bold; color:#0F172A; margin-bottom:15px; border-bottom: 2px solid #3B82F6; padding-bottom:5px; }
+    .price-tag { font-size: 20px; font-weight: bold; color: #10B981; }
+    </style>
+    """, unsafe_allow_html=True)
 
-try:
-    cursor.execute("INSERT OR IGNORE INTO users VALUES ('admin', 'admin123', 'admin', 0)")
-    cursor.execute("INSERT OR IGNORE INTO settings VALUES ('notice', 'कल सुबह 10:00 बजे गणित की महा-मैराथन लाइव क्लास होगी।')")
-    cursor.execute("INSERT OR IGNORE INTO settings VALUES ('video_url', 'https://youtube.com')")
-    conn.commit()
-except:
-    pass
+# मुख्य हेडर
+st.markdown('<div class="main-title">🚀 स्मार्ट डिजिटल एकेडमी प्रो</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">लाइव क्लास, रिकॉर्डेड कोर्सेज, पेड कोर्सेज और नोट्स - सब कुछ एक ही स्थान पर</div>', unsafe_allow_html=True)
+st.write("---")
 
-st.set_page_config(page_title="Tarun Education", page_icon="🎓", layout="wide")
+# =========================================================
+# [आवश्यक फीचर 1]: स्टूडेंट लॉगिन और प्रोफाइल (Student Profile)
+# =========================================================
+st.markdown('<div class="feature-header">👤 स्टूडेंट लॉगिन और प्रोफाइल</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-box">', unsafe_allow_html=True)
+col_p1, col_p2, col_p3 = st.columns(3)
+with col_p1:
+    student_name = st.text_input("अपना नाम दर्ज करें:", value="रमेश कुमार")
+with col_p2:
+    student_id = st.text_input("स्टूडेंट रोल नंबर / ID:", value="STD-2026-89")
+with col_p3:
+    st.write("*अकाउंट स्टेटस:*")
+    st.success("🟢 प्रीमियम सदस्य (Premium Student)")
+st.markdown('</div>', unsafe_allow_html=True)
+st.write("---")
 
-if "logged_in" not in st.session_state: st.session_state.logged_in = False
-if "username" not in st.session_state: st.session_state.username = ""
-if "role" not in st.session_state: st.session_state.role = "student"
+# =========================================================
+# [आवश्यक फीचर 2]: नोटिस बोर्ड (Notice Board)
+# =========================================================
+st.markdown('<div class="feature-header">📢 नोटिस बोर्ड (Announcements)</div>', unsafe_allow_html=True)
+st.info("🔔 *महत्वपूर्ण सूचना:* आज रात 9:00 बजे नया 'पेड कोर्स' लाइव होने जा रहा है। सीमित सीटें उपलब्ध हैं।")
+st.warning("⚠️ *अपडेट:* इस रविवार को सुबह 10:00 बजे 'पायथन का लाइव मेगा टेस्ट' होगा।")
+st.write("---")
 
-cursor.execute("SELECT value FROM settings WHERE key='notice'")
-current_notice = cursor.fetchone()[0]
-cursor.execute("SELECT value FROM settings WHERE key='video_url'")
-current_video = cursor.fetchone()[0]
+# =========================================================
+# फीचर 3: लाइव क्लास रूम (Live Classes)
+# =========================================================
+st.markdown('<div class="feature-header">📹 लाइव क्लास रूम (Live Classes)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-box">', unsafe_allow_html=True)
+col1, col2 = st.columns()
+with col1:
+    # यहाँ आप अपनी Zoom, Google Meet या Jitsi का लिंक बदल सकते हैं
+    live_class_url = "https://jit.si" 
+    st.write("🔴 *लाइव क्लास में शामिल होने के लिए नीचे दिए गए बटन पर क्लिक करें:*")
+    st.link_button("🚀 अभी लाइव क्लास जॉइन करें", live_class_url, use_container_width=True)
+with col2:
+    st.write("⏰ *आज की क्लास का समय:*")
+    st.success("रोजाना सुबह 11:00 AM से 12:30 PM (पायथन बेसिक्स)")
 
-if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🎓 Tarun Education</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555;'>प्लेस्टोर एडिशन - डिजिटल लर्निंग प्लेटफॉर्म</p>", unsafe_allow_html=True)
+# कैमरा और माइक टेस्टिंग (Local Webcam Test)
+with st.expander("📸 अपने मोबाइल का कैमरा और माइक टेस्ट करें (क्लास जॉइन करने से पहले)"):
+    try:
+        from streamlit_webrtc import streamlit_webrtc_wrapper
+        streamlit_webrtc_wrapper(key="live-stream")
+    except ImportError:
+        st.info("नोट: कैमरा टेस्ट चालू करने के लिए requirements.txt में streamlit-webrtc जोड़ें।")
+st.markdown('</div>', unsafe_allow_html=True)
+st.write("---")
+
+# =========================================================
+# फीचर 4: प्रीमियम / पेड कोर्सेज (Paid Courses Selection)
+# =========================================================
+st.markdown('<div class="feature-header">💎 प्रीमियम पेड कोर्सेज (Paid Courses)</div>', unsafe_allow_html=True)
+st.write("विशेष तैयारी के लिए हमारे बेस्ट सेलिंग प्रीमियम कोर्सेज में शामिल हों:")
+
+col_c1, col_c2 = st.columns(2)
+with col_c1:
+    st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    st.image("https://unsplash.com", width=250, caption="कोडिंग सीखें")
+    st.markdown("### *1. मास्टर इन पायथन (Complete Guide)*")
+    st.write("• बेसिक से एडवांस कोडिंग, 20+ लाइव प्रोजेक्ट्स और सर्टिफिकेट।")
+    st.markdown('<span class="price-tag">💰 कीमत: ₹499/- (Life Time Access)</span>', unsafe_allow_html=True)
+    # यहाँ आप अपने PhonePe, Google Pay या Razorpay पेमेंट का लिंक डाल सकते हैं
+    st.link_button("💳 कोर्स खरीदें (Buy Now)", "https://pwebintoapp.com", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col_c2:
+    st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    st.image("https://unsplash.com", width=250, caption="डेटा साइंस")
+    st.markdown("### *2. डेटा साइंस और AI (Artificial Intelligence)*")
+    st.write("• मशीन लर्निंग, डेटा एनालिसिस और कंपनियों में प्लेसमेंट सपोर्ट।")
+    st.markdown('<span class="price-tag">💰 कीमत: ₹999/- (1 Year Access)</span>', unsafe_allow_html=True)
+    st.link_button("💳 कोर्स खरीदें (Buy Now)", "https://pwebintoapp.com", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+st.write("---")
+
+# =========================================================
+# फीचर 5: रिकॉर्डेड कोर्सेज (Recorded Video Lectures)
+# =========================================================
+st.markdown('<div class="feature-header">📺 रिकॉर्डेड कोर्सेज (Recorded Lectures)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-box">', unsafe_allow_html=True)
+st.write("यदि आपकी कोई लाइव क्लास छूट गई है, तो पुराने सभी वीडियो लेक्चर्स यहाँ देखें:")
+
+# वीडियो लिंक्स (यहाँ अपने असली YouTube Unlisted या Google Drive डायरेक्ट लिंक्स डाल सकते हैं)
+courses_database = {
+    "पायथन लेक्चर 1: सॉफ्टवेयर इंस्टॉलेशन और पहला प्रोग्राम": "https://w3schools.com", 
+    "पायथन लेक्चर 2: वेरिएबल्स और डेटा इनपुट": "https://w3schools.com",
+    "पायथन लेक्चर 3: फंक्शन्स और कोडिंग प्रैक्टिस": "https://zencdn.net"
+}
+
+selected_lecture = st.selectbox("आपको कौन सा लेक्चर देखना है? चुनें:", list(courses_database.keys()))
+st.write(f"🎬 *अब चल रहा है:* {selected_lecture}")
+st.video(courses_database[selected_lecture])
+st.markdown('</div>', unsafe_allow_html=True)
+st.write("---")
+
+# =========================================================
+# फीचर 6: सिलेबस और पीडीएफ नोट्स (Syllabus & PDF Material)
+# =========================================================
+st.markdown('<div class="feature-header">📑 कोर्स सिलेबस और पीडीएफ नोट्स (PDF Material)</div>', unsafe_allow_html=True)
+st.write("चैप्टर के अनुसार सिलेबस देखें और पढ़ाई के लिए पीडीएफ डाउनलोड करें:")
+
+with st.expander("📚 चैप्टर 1: परिचय (Python Intro) - सिलेबस और पीडीएफ देखें"):
+    st.markdown("""
+    * *विषय 1.1:* वेरिएबल्स, डेटा टाइप्स और ऑपरेटर्स क्या हैं?
+    * *विषय 1.2:* इफ-एल्स (If-Else) कंडीशनल स्टेटमेंट्स
+    * *विषय 1.3:* लूप्स का इस्तेमाल (For और While Loops)
+    """)
+    # पीडीएफ डाउनलोड बटन
+    st.download_button(
+        label="📥 चैप्टर 1 के पीडीएफ नोट्स डाउनलोड करें", 
+        data="यह चैप्टर 1 के स्टडी नोट्स की पीडीएफ फाइल का सैंपल डेटा है।", 
+        file_name="python_chapter1_notes.pdf",
+        mime="application/pdf"
+    )
+
+with st.expander("📚 चैप्टर 2: ऑब्जेक्ट ओरिएंटेड प्रोग्रामिंग (OOPs) - सिलेबस और पीडीएफ देखें"):
+    st.markdown("""
+    * *विषय 2.1:* क्लासेस और ऑब्जेक्ट्स का बेसिक (Classes & Objects)
+    * *विषय 2.2:* इनहेरिटेंस और पॉलीमॉर्फिज्म (Inheritance)
+    """)
+    st.download_button(
+        label="📥 चैप्टर 2 के पीडीएफ नोट्स डाउनलोड करें", 
+        data="यह चैप्टर 2 के स्टडी नोट्स की पीडीएफ फाइल का सैंपल डेटा है।", 
+        file_name="python_chapter2_notes.pdf",
+        mime="application/pdf"
+    )
+st.write("---")
+
+# =========================================================
+# [आवश्यक फीचर 7]: ऑनलाइन टेस्ट / क्विज़ (Interactive MCQ Test)
+# =========================================================
+st.markdown('<div class="feature-header">📝 ऑनलाइन प्रैक्टिस टेस्ट (Quiz Exam)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-box">', unsafe_allow_html=True)
+score = 0
+
+st.markdown("##### *प्रश्न 1: Python का आविष्कार किसने किया था?*")
+q1 = st.radio("सही विकल्प चुनें:", ["Dennis Ritchie", "Guido van Rossum", "James Gosling", "Bjarne Stroustrup"], key="q1")
+if q1 == "Guido van Rossum":
+    score += 1
     
-    tab1, tab2 = st.tabs(["🔐 छात्र लॉगिन (Student Login)", "📝 नया रजिस्ट्रेशन (Sign Up)"])
+st.markdown("##### *प्रश्न 2: इनमें से कौन सा डेटा टाइप Python में नहीं है?*")
+q2 = st.radio("सही विकल्प चुनें:", ["List", "Dictionary", "Tuple", "Array (Built-in)"], key="q2")
+if q2 == "Array (Built-in)":
+    score += 1
     
-    with tab1:
-        st.subheader("अपने रजिस्टर्ड अकाउंट से लॉगिन करें")
-        u_name = st.text_input("यूज़रनेम / मोबाइल नंबर", key="l_user")
-        u_pass = st.text_input("पासवर्ड (Password)", type="password", key="l_pass")
-        
-        if st.button("लॉगिन करें (Secure Login)"):
-            cursor.execute("SELECT password, role FROM users WHERE username=?", (u_name,))
-            user_data = cursor.fetchone()
-            
-            if user_data and user_data[0] == u_pass:
-                st.session_state.logged_in = True
-                st.session_state.username = u_name
-                st.session_state.role = user_data[1]
-                st.success("लॉगिन सफल! डैशबोर्ड खुल रहा है...")
-                st.rerun()
-            else:
-                st.error("गलत यूज़रनेम या पासवर्ड! कृपया दोबारा जांचें।")
-                
-    with tab2:
-        st.subheader("कोचिंग में नया एडमिशन लें")
-        reg_name = st.text_input("अपना नया यूज़रनेम बनाएं", key="r_user")
-        reg_pass = st.text_input("एक मजबूत पासवर्ड सेट करें", type="password", key="r_pass")
-        
-        if st.button("अकाउंट सुरक्षित करें (Register)"):
-            if reg_name and reg_pass:
-                try:
-                    cursor.execute("INSERT INTO users (username, password, role, points) VALUES (?, ?, 'student', 0)", (reg_name, reg_pass))
-                    conn.commit()
-                    st.balloons()
-                    st.success("🎉 रजिस्ट्रेशन सफल! अब लॉगिन टैब पर जाकर अपना अकाउंट खोलें।")
-                except sqlite3.IntegrityError:
-                    st.error("यह यूज़रनेम पहले से किसी और छात्र का है। कुछ अलग नाम चुनें।")
-            else:
-                st.warning("कृपया दोनों बॉक्स में जानकारी भरें।")
-
-else:
-    # लॉगआउट बटन
-    if st.sidebar.button("🚪 ऐप बंद करें (Logout)"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.role = "student"
-        st.rerun()
-        
-    st.sidebar.markdown(f"### 👤 यूज़र: {st.session_state.username.upper()}")
-    
-    if st.session_state.role == "admin":
-        st.title("👑 तरूण एजुकेशन - ओनर कंट्रोल पैनल")
-        st.sidebar.success("मोड: मुख्य व्यवस्थापक (Admin)")
-        
-        admin_opt = st.sidebar.radio("कंट्रोल सेटिंग्स", ["👥 छात्र मैनेजमेंट", "📢 लाइव नोटिस बोर्ड", "🎬 वीडियो लेक्चर बदलें"])
-        
-        if admin_opt == "👥 छात्र मैनेजमेंट":
-            st.header("👥 ऐप पर पंजीकृत असली छात्र")
-            st.write("यह डेटा आपके असली डेटाबेस (SQLite) से लाइव आ रहा है:")
-            
-            df = pd.read_sql_query("SELECT username, role, points FROM users WHERE role='student'", conn)
-            if not df.empty:
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.info("अभी तक किसी छात्र ने रजिस्टर नहीं किया है।")
-                
-        elif admin_opt == "📢 लाइव नोटिस बोर्ड":
-            st.header("📢 सभी छात्रों के लिए नया नोटिस जारी करें")
-            new_not = st.text_area("नोटिस का मैटर यहाँ टाइप करें:", value=current_notice)
-            if st.button("तुरंत पब्लिश करें"):
-                cursor.execute("UPDATE settings SET value=? WHERE key='notice'", (new_not,))
-                conn.commit()
-                st.success("नोटिस डेटाबेस में सुरक्षित हो गया! सभी छात्रों को अब यही दिखेगा।")
-                
-        elif admin_opt == "🎬 वीडियो लेक्चर बदलें":
-            st.header("🎬 क्लास का वीडियो बदलें")
-            new_vid = st.text_input("नया YouTube वीडियो लिंक यहाँ डालें:", value=current_video)
-            if st.button("वीडियो अपडेट करें"):
-                cursor.execute("UPDATE settings SET value=? WHERE key='video_url'", (new_vid,))
-                conn.commit()
-                st.success("वीडियो लिंक बदल दिया गया है!")
-
+if st.button("अपना टेस्ट सबमिट करें", use_container_width=True):
+    st.metric(label="आपका फाइनल स्कोर", value=f"{score} / 2")
+    if score == 2:
+        st.balloons()
+        st.success("🏆 बधाई हो! आपने सभी प्रश्नों के सही उत्तर दिए हैं।")
     else:
-        st.title("🎓 Tarun Education डिजिटल क्लासरूम")
-        st.sidebar.info("बैच: सामान्य प्रतियोगिता परीक्षा")
-        
-        stud_opt = st.sidebar.radio("पढ़ाई मेनू", ["🏠 होम / नोटिस बोर्ड", "🔴 वीडियो क्लास रूम", "🏆 लीडरबोर्ड"])
-        
-        if stud_opt == "🏠 होम / नोटिस बोर्ड":
-            st.subheader("📢 कोचिंग की तरफ से महत्वपूर्ण सूचना:")
-            st.info(current_notice) 
-            
-            
-            cursor.execute("SELECT points FROM users WHERE username=?", (st.session_state.username,))
-            my_pts = cursor.fetchone()[0]
-            st.metric(label="🎯 आपके टेस्ट पॉइंट्स", value=f"{my_pts} XP")
-            
-        elif stud_opt == "🔴 वीडियो क्लास रूम":
-            st.subheader("📺 आज का वीडियो लेक्चर")
-            st.video(current_video) 
-            
-            
-            st.markdown("---")
-            st.subheader("✍️ क्लास अटेंडेंस टेस्ट")
-            ans = st.radio("पायथन एक किस प्रकार की भाषा है?", ["प्रोग्रामिंग भाषा", "हार्डवेयर"])
-            if st.button("जवाब लॉक करें"):
-                if ans == "प्रोग्रामिंग भाषा":
-                    cursor.execute("UPDATE users SET points = points + 10 WHERE username=?", (st.session_state.username,))
-                    conn.commit()
-                    st.success("सही जवाब! डेटाबेस में आपके +10 पॉइंट्स जोड़ दिए गए हैं। होम पर जाकर चेक करें।")
-                else:
-                    st.error("गलत जवाब, दोबारा कोशिश करें।")
-                    
-        elif stud_opt == "🏆 लीडरबोर्ड":
-            st.subheader("🥇 टॉपर्स लीडरबोर्ड")
-            df_leader = pd.read_sql_query("SELECT username as 'छात्र का नाम', points as 'पॉइंट्स' FROM users WHERE role='student' ORDER BY points DESC", conn)
-            st.table(df_leader)
+        st.warning("📖 थोड़ा और अभ्यास करें! आप अगले टेस्ट में बेहतर कर सकते हैं।")
+st.markdown('</div>', unsafe_allow_html=True)
+st.write("---")
+
+# =========================================================
+# फीचर 8: चैट बॉक्स और डाउट सपोर्ट (Chat Box & Help)
+# =========================================================
+st.markdown('<div class="feature-header">💬 स्टूडेंट डाउट चैट बॉक्स (Help & Support)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-box">', unsafe_allow_html=True)
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+    
+c1, c2 = st.columns()
+with c1:
+    current_user = st.text_input("चैट में आपका नाम:", value=student_name, disabled=True)
+with c2:
+    user_msg = st.text_input("अपना सवाल या समस्या यहाँ लिखें और बटन दबाएं:")
+
+if st.button("मैसेज भेजें (Send Message)", use_container_width=True):
+    if user_msg:
