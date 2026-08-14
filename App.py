@@ -183,7 +183,7 @@ st.markdown('<div class="section-box">', unsafe_allow_html=True)
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
     
-c1, c2 = st.columns()
+c1, c2 = st.columns(2)
 with c1:
     current_user = st.text_input("चैट में आपका नाम:", value=student_name, disabled=True)
 with c2:
