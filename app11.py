@@ -5,10 +5,16 @@ from datetime import datetime
 # --- 1. PAGE CONFIGURATION & PREMIUM DESIGN (CSS) ---
 st.set_page_config(page_title="Information with Tarun", page_icon="🎓", layout="wide")
 
-# CSS: Custom rules to hide Streamlit default menu, deployment buttons, and protect data
+# CSS: Mobile Refresh and Scroll Freeze Fix
 st.markdown("""
     <style>
-    .stApp { background-color: #F3F4F6; }
+    /* 🛠️ MOBILE REFRESH FIX: Stops pull-to-refresh completely on phones */
+    html, body, .stApp, .main { 
+        background-color: #F3F4F6; 
+        overscroll-behavior-y: contain !important;
+        overscroll-behavior: contain !important;
+        touch-action: pan-x pan-y !important;
+    }
     
     /* Hide Streamlit MainMenu, Deploy Button, and Footer */
     #MainMenu {visibility: hidden;}
@@ -16,17 +22,10 @@ st.markdown("""
     header {visibility: hidden;}
     .stDeployButton {display:none !important;}
     
-    /* Security: Prevent text selection and copying */
-    body, .stApp {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
-    
+    /* Layout styling */
     .main-title {
         color: #1E3A8A;
-        font-size: 42px;
+        font-size: 32px;
         font-weight: 800;
         text-align: center;
         margin-bottom: 5px;
@@ -34,29 +33,43 @@ st.markdown("""
     }
     .sub-title {
         color: #6B7280;
-        font-size: 18px;
+        font-size: 16px;
         text-align: center;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
     }
     
     .vacancy-card {
         background-color: #FFFFFF;
-        padding: 24px;
-        border-radius: 16px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         border-left: 6px solid #3B82F6;
-        margin-bottom: 25px;
-    }
-    .vacancy-title {
-        color: #1E3A8A;
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 8px;
+        margin-bottom: 20px;
+        position: relative;
     }
     
+    /* 🔒 SECURITY OVERLAY: Prevents text selection without breaking the scroll */
+    .vacancy-card::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: transparent;
+        z-index: 10;
+        pointer-events: none;
+    }
+    
+    .vacancy-title {
+        color: #1E3A8A;
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+    
+    /* Dedicated internal scrolling chat box */
     .scroll-chat-box {
-        max-height: 400px;
-        overflow-y: auto;
+        max-height: 320px;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
         padding: 10px;
         border: 1px solid #E5E7EB;
         border-radius: 12px;
@@ -91,7 +104,6 @@ st.markdown("""
         margin: 0 auto;
     }
 
-    /* Blank page layout on print preview */
     @media print {
         html, body {
             display: none !important;
@@ -100,7 +112,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# JavaScript: Disables right click and basic developer keys/shortcuts
+# JavaScript Security Blockers
 st.components.v1.html("""
     <script>
     document.addEventListener('contextmenu', event => event.preventDefault());
@@ -149,7 +161,7 @@ if st.session_state.logged_in_user is None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; color: #1E3A8A;'>🔐 Welcome! Please Login</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1E3A8A; margin-top:0;'>🔐 Welcome! Please Login</h3>", unsafe_allow_html=True)
         
         auth_mode = st.selectbox("Choose Action", ["Login", "Register"], label_visibility="collapsed")
         
@@ -193,7 +205,6 @@ else:
         st.session_state.logged_in_user = None
         st.rerun()
 
-    # 🛠️ टैब इंडेक्स एरर्स को पूरी तरह फ़िक्स किया गया है
     if user_role == "Admin":
         tabs = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
     else:
@@ -246,10 +257,3 @@ else:
                 v_docs = st.text_area("Required Documents")
                 v_syllabus = st.text_area("Syllabus / Exam Pattern")
                 v_link = st.text_input("Official Link")
-                v_pamphlet = st.file_uploader("Upload Pamphlet / Banner (Image)", type=["png", "jpg", "jpeg"])
-                
-                submit_btn = st.form_submit_button("Post Vacancy Now")
-                
-                if submit_btn:
-                    if v_title and v_docs and v_link:
-                        new_id = len(st.session_state.vacancies) + 1
