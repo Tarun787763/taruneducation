@@ -5,9 +5,24 @@ from datetime import datetime
 # --- 1. PAGE CONFIGURATION & PREMIUM DESIGN (CSS) ---
 st.set_page_config(page_title="Information with Tarun", page_icon="🎓", layout="wide")
 
+# CSS: Custom rules to hide Streamlit default menu, deployment buttons, and protect data
 st.markdown("""
     <style>
     .stApp { background-color: #F3F4F6; }
+    
+    /* Hide Streamlit MainMenu, Deploy Button, and Footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display:none !important;}
+    
+    /* Security: Prevent text selection and copying */
+    body, .stApp {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
     
     .main-title {
         color: #1E3A8A;
@@ -31,13 +46,22 @@ st.markdown("""
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         border-left: 6px solid #3B82F6;
         margin-bottom: 25px;
-        transition: transform 0.2s;
     }
     .vacancy-title {
         color: #1E3A8A;
         font-size: 24px;
         font-weight: 700;
         margin-bottom: 8px;
+    }
+    
+    .scroll-chat-box {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        background-color: #FFFFFF;
+        margin-bottom: 15px;
     }
     
     .chat-bubble-user {
@@ -57,8 +81,42 @@ st.markdown("""
         margin-bottom: 10px;
         max-width: 80%;
     }
+    
+    .login-container {
+        background-color: #FFFFFF;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    /* Blank page layout on print preview / print shortcut attempts */
+    @media print {
+        html, body {
+            display: none !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
+
+# JavaScript: Disables right click and basic developer keys/shortcuts
+st.components.v1.html("""
+    <script>
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123) { return false; }
+        if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) { return false; }
+        if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { return false; }
+        if(e.ctrlKey && e.keyCode == 'P'.charCodeAt(0)) { 
+            alert("Screenshots / Printing not allowed!");
+            return false; 
+        }
+        if(e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) { return false; }
+    };
+    </script>
+""", height=0, width=0)
 
 # --- 2. INITIALIZE SESSION STATES ---
 if "users" not in st.session_state:
@@ -83,57 +141,58 @@ if "chat_messages" not in st.session_state:
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
 
-# --- 3. SIDEBAR: REGISTER & LOGIN SYSTEM ---
-st.sidebar.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 User Portal</h2>", unsafe_allow_html=True)
-
-if st.session_state.logged_in_user is None:
-    auth_mode = st.sidebar.selectbox("Choose Action", ["Login", "Register"])
-    
-    if auth_mode == "Register":
-        st.sidebar.subheader("Create Account")
-        reg_user = st.sidebar.text_input("Username", key="reg_u").strip()
-        reg_pass = st.sidebar.text_input("Password", type="password", key="reg_p")
-        reg_role = st.sidebar.selectbox("Join As", ["Student", "Admin"])
-        
-        if st.sidebar.button("Sign Up"):
-            if reg_user and reg_pass:
-                if reg_user in st.session_state.users:
-                    st.sidebar.error("Username already exists!")
-                else:
-                    st.session_state.users[reg_user] = {"password": reg_pass, "role": reg_role}
-                    st.sidebar.success("Registration Successful! Please Login.")
-            else:
-                st.sidebar.warning("Please fill all fields.")
-
-    elif auth_mode == "Login":
-        st.sidebar.subheader("Account Login")
-        login_user = st.sidebar.text_input("Username", key="log_u").strip()
-        login_pass = st.sidebar.text_input("Password", type="password", key="log_p")
-        
-        if st.sidebar.button("Login"):
-            if login_user in st.session_state.users and st.session_state.users[login_user]["password"] == login_pass:
-                st.session_state.logged_in_user = {
-                    "username": login_user,
-                    "role": st.session_state.users[login_user]["role"]
-                }
-                st.rerun()
-            else:
-                st.sidebar.error("Invalid Username or Password!")
-else:
-    st.sidebar.success(f"Logged in as: *{st.session_state.logged_in_user['username']}* ({st.session_state.logged_in_user['role']})")
-    if st.sidebar.button("Logout"):
-        st.session_state.logged_in_user = None
-        st.rerun()
-
-# --- 4. MAIN APP INTERFACE ---
+# --- 3. MAIN APP INTERFACE ---
 st.markdown("<div class='main-title'>Information with Tarun</div>", unsafe_allow_html=True)
 st.markdown("<div class='sub-title'>Latest Vacancies, Syllabus & Smart Support Panel</div>", unsafe_allow_html=True)
 
 if st.session_state.logged_in_user is None:
-    st.info("👋 Please Login or Register from the Sidebar to access the features.")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1E3A8A;'>🔐 Welcome! Please Login</h3>", unsafe_allow_html=True)
+        
+        auth_mode = st.selectbox("Choose Action", ["Login", "Register"], label_visibility="collapsed")
+        
+        if auth_mode == "Login":
+            login_user = st.text_input("Username", key="main_log_u").strip()
+            login_pass = st.text_input("Password", type="password", key="main_log_p")
+            
+            if st.button("Login Now", type="primary", use_container_width=True):
+                if login_user in st.session_state.users and st.session_state.users[login_user]["password"] == login_pass:
+                    st.session_state.logged_in_user = {
+                        "username": login_user,
+                        "role": st.session_state.users[login_user]["role"]
+                    }
+                    st.rerun()
+                else:
+                    st.error("Invalid Username or Password!")
+                    
+        elif auth_mode == "Register":
+            reg_user = st.text_input("Choose Username", key="main_reg_u").strip()
+            reg_pass = st.text_input("Choose Password", type="password", key="main_reg_p")
+            reg_role = st.selectbox("Join As", ["Student", "Admin"])
+            
+            if st.button("Create Account", type="primary", use_container_width=True):
+                if reg_user and reg_pass:
+                    if reg_user in st.session_state.users:
+                        st.error("Username already exists!")
+                    else:
+                        st.session_state.users[reg_user] = {"password": reg_pass, "role": reg_role}
+                        st.success("Registration Successful! Switch to 'Login' to enter.")
+                else:
+                    st.warning("Please fill all fields.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 4. POST-LOGIN INTERFACE ---
 else:
     user_role = st.session_state.logged_in_user["role"]
     
+    st.sidebar.markdown("<h2 style='text-align: center; color: #1E3A8A;'>👤 My Profile</h2>", unsafe_allow_html=True)
+    st.sidebar.success(f"User: *{st.session_state.logged_in_user['username']}\n\nRole: *{user_role}**")
+    if st.sidebar.button("Logout", type="primary", use_container_width=True):
+        st.session_state.logged_in_user = None
+        st.rerun()
+
     if user_role == "Admin":
         tabs = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
     else:
@@ -194,42 +253,3 @@ else:
                     if v_title and v_docs and v_link:
                         new_id = len(st.session_state.vacancies) + 1
                         st.session_state.vacancies.append({
-                            "id": new_id,
-                            "title": v_title,
-                            "last_date": str(v_date),
-                            "docs": v_docs,
-                            "syllabus": v_syllabus,
-                            "link": v_link,
-                            "pamphlet": v_pamphlet
-                        })
-                        st.success(f"'{v_title}' Added Successfully!")
-                        st.rerun()
-                    else:
-                        st.error("Please fill required fields (Title, Documents, Link).")
-            
-            st.markdown("### 🗑️ Delete Existing Vacancy")
-            if st.session_state.vacancies:
-                delete_options = {v["title"]: v["id"] for v in st.session_state.vacancies}
-                to_delete = st.selectbox("Select Vacancy to Delete", list(delete_options.keys()))
-                if st.button("Delete Selected Job", type="primary"):
-                    st.session_state.vacancies = [v for v in st.session_state.vacancies if v["id"] != delete_options[to_delete]]
-                    st.success("Vacancy successfully deleted!")
-                    st.rerun()
-
-    # --- TAB 3: LIVE DOUBT CHATBOX ---
-    chat_tab_index = 2 if user_role == "Admin" else 1
-    with tabs[chat_tab_index]:
-        st.subheader("💬 Live Support Chatbox")
-        
-        chat_container = st.container()
-        with chat_container:
-            for message in st.session_state.chat_messages:
-                if message["role"] == "Admin":
-                    st.markdown(f"<div class='chat-bubble-admin'><b>🧔 {message['user']}:</b><br>{message['msg']}</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<div class='chat-bubble-user'><b>🎓 {message['user']}:</b><br>{message['msg']}</div>", unsafe_allow_html=True)
-        
-        with st.form("chat_form", clear_on_submit=True):
-            user_display_name = st.session_state.logged_in_user["username"]
-            if user_role == "Admin":
-                user_display_name = f"Admin ({user_display_name})"
