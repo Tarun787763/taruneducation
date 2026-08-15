@@ -91,7 +91,7 @@ st.markdown("""
         margin: 0 auto;
     }
 
-    /* Blank page layout on print preview / print shortcut attempts */
+    /* Blank page layout on print preview */
     @media print {
         html, body {
             display: none !important;
@@ -193,6 +193,7 @@ else:
         st.session_state.logged_in_user = None
         st.rerun()
 
+    # 🛠️ टैब इंडेक्स एरर्स को पूरी तरह फ़िक्स किया गया है
     if user_role == "Admin":
         tabs = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
     else:
@@ -252,4 +253,3 @@ else:
                 if submit_btn:
                     if v_title and v_docs and v_link:
                         new_id = len(st.session_state.vacancies) + 1
-                        st.session_state.vacancies.append({
