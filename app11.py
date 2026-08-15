@@ -5,24 +5,32 @@ from datetime import datetime
 # --- 1. PAGE CONFIGURATION & PREMIUM DESIGN (CSS) ---
 st.set_page_config(page_title="Information with Tarun", page_icon="🎓", layout="wide")
 
-# CSS: Mobile Refresh and Scroll Freeze Fix
 st.markdown("""
     <style>
-    /* 🛠️ MOBILE REFRESH FIX: Stops pull-to-refresh completely on phones */
-    html, body, .stApp, .main { 
-        background-color: #F3F4F6; 
+    /* 🛠️ MOBILE REFRESH BLOCK: Stops browser pull-to-refresh completely */
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100% !important;
+        overflow: hidden !important; /* Disable native browser scroll */
         overscroll-behavior-y: contain !important;
         overscroll-behavior: contain !important;
-        touch-action: pan-x pan-y !important;
     }
     
-    /* Hide Streamlit MainMenu, Deploy Button, and Footer */
+    /* Independent smooth scrolling container inside the app */
+    .main .block-container {
+        max-height: 100vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 80px !important;
+    }
+    
+    /* Hide Streamlit default components */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none !important;}
     
-    /* Layout styling */
     .main-title {
         color: #1E3A8A;
         font-size: 32px;
@@ -48,7 +56,7 @@ st.markdown("""
         position: relative;
     }
     
-    /* 🔒 SECURITY OVERLAY: Prevents text selection without breaking the scroll */
+    /* 🔒 SECURITY OVERLAY */
     .vacancy-card::after {
         content: "";
         position: absolute;
@@ -65,9 +73,8 @@ st.markdown("""
         margin-bottom: 6px;
     }
     
-    /* Dedicated internal scrolling chat box */
     .scroll-chat-box {
-        max-height: 320px;
+        max-height: 280px;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         padding: 10px;
@@ -112,9 +119,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# JavaScript Security Blockers
+# 🔒 JavaScript: Disables Refresh gesture, Right-Click, and Developer keys
 st.components.v1.html("""
     <script>
+    // 🛠️ HARD REFRESH BLOCK: Stops browser pull-to-refresh behavior on mobile touch
+    document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) e.preventDefault(); 
+    }, {passive: false});
+    
+    let lastY = 0;
+    document.addEventListener('touchmove', function(e) {
+        let currentY = e.touches[0].clientY;
+        if (window.scrollY === 0 && currentY > lastY) {
+            // User is trying to pull down at the top of the page - block it
+            e.preventDefault();
+        }
+        lastY = currentY;
+    }, {passive: false});
+
     document.addEventListener('contextmenu', event => event.preventDefault());
 
     document.onkeydown = function(e) {
@@ -158,7 +180,7 @@ st.markdown("<div class='main-title'>Information with Tarun</div>", unsafe_allow
 st.markdown("<div class='sub-title'>Latest Vacancies, Syllabus & Smart Support Panel</div>", unsafe_allow_html=True)
 
 if st.session_state.logged_in_user is None:
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns()
     with col2:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align: center; color: #1E3A8A; margin-top:0;'>🔐 Welcome! Please Login</h3>", unsafe_allow_html=True)
@@ -211,7 +233,7 @@ else:
         tabs = st.tabs(["📋 Vacancies & Information", "💬 Doubt Chatbox"])
 
     # --- TAB 1: STUDENT VIEW ---
-    with tabs[0]:
+    with tabs:
         st.subheader("🔍 All Active Job Openings")
         search_query = st.text_input("Search Job Title...", "")
         
@@ -243,17 +265,3 @@ else:
                         st.caption("No pamphlet uploaded.")
             
             st.markdown(f"[🔗 Apply Online Here]({vac['link']})")
-            st.markdown("<hr style='margin: 10px 0 25px 0; border-top: 1px dashed #CCC;'>", unsafe_allow_html=True)
-
-    # --- TAB 2: ADMIN PANEL ---
-    if user_role == "Admin":
-        with tabs[1]:
-            st.subheader("⚙️ Add / Remove Vacancies")
-            
-            with st.form("add_vacancy_form", clear_on_submit=True):
-                st.markdown("### ➕ Add New Vacancy")
-                v_title = st.text_input("Vacancy Title")
-                v_date = st.date_input("Last Date to Apply", datetime.now())
-                v_docs = st.text_area("Required Documents")
-                v_syllabus = st.text_area("Syllabus / Exam Pattern")
-                v_link = st.text_input("Official Link")
