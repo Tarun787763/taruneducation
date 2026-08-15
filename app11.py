@@ -228,7 +228,7 @@ else:
         st.rerun()
 
     if user_role == "Admin":
-        with tabs[1] = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
+         with tabs[1] = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
     else:
         tabs = st.tabs(["📋 Vacancies & Information", "💬 Doubt Chatbox"])
 
