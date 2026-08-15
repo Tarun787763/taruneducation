@@ -180,7 +180,7 @@ st.markdown("<div class='main-title'>Information with Tarun</div>", unsafe_allow
 st.markdown("<div class='sub-title'>Latest Vacancies, Syllabus & Smart Support Panel</div>", unsafe_allow_html=True)
 
 if st.session_state.logged_in_user is None:
-    col1, col2, col3 = st.columns()
+    col1, col2, col3 = st.columns(3)
     with col2:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align: center; color: #1E3A8A; margin-top:0;'>🔐 Welcome! Please Login</h3>", unsafe_allow_html=True)
