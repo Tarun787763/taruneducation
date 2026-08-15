@@ -5,32 +5,23 @@ from datetime import datetime
 # --- 1. PAGE CONFIGURATION & PREMIUM DESIGN (CSS) ---
 st.set_page_config(page_title="Information with Tarun", page_icon="🎓", layout="wide")
 
+# CSS: Stops mobile browser pull-to-refresh completely and fixes scroll freeze
 st.markdown("""
     <style>
-    /* 🛠️ MOBILE REFRESH BLOCK: Stops browser pull-to-refresh completely */
-    html, body {
-        margin: 0;
-        padding: 0;
-        height: 100% !important;
-        overflow: hidden !important; /* Disable native browser scroll */
+    /* 🛠️ MOBILE REFRESH BLOCK: Disables default pull-to-refresh on mobile Chrome/Safari */
+    html, body, .stApp {
         overscroll-behavior-y: contain !important;
         overscroll-behavior: contain !important;
+        background-color: #F3F4F6; 
     }
     
-    /* Independent smooth scrolling container inside the app */
-    .main .block-container {
-        max-height: 100vh !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        padding-bottom: 80px !important;
-    }
-    
-    /* Hide Streamlit default components */
+    /* Hide Streamlit MainMenu, Deploy Button, and Footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stDeployButton {display:none !important;}
     
+    /* Layout styling */
     .main-title {
         color: #1E3A8A;
         font-size: 32px;
@@ -56,7 +47,7 @@ st.markdown("""
         position: relative;
     }
     
-    /* 🔒 SECURITY OVERLAY */
+    /* 🔒 SECURITY OVERLAY: Protects text without blocking layout touch scroll */
     .vacancy-card::after {
         content: "";
         position: absolute;
@@ -73,8 +64,9 @@ st.markdown("""
         margin-bottom: 6px;
     }
     
+    /* Dedicated internal scrolling chat box */
     .scroll-chat-box {
-        max-height: 280px;
+        max-height: 300px;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         padding: 10px;
@@ -119,24 +111,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔒 JavaScript: Disables Refresh gesture, Right-Click, and Developer keys
+# JavaScript Security Blockers
 st.components.v1.html("""
     <script>
-    // 🛠️ HARD REFRESH BLOCK: Stops browser pull-to-refresh behavior on mobile touch
-    document.addEventListener('touchstart', function(e) {
-        if (e.touches.length > 1) e.preventDefault(); 
-    }, {passive: false});
-    
-    let lastY = 0;
-    document.addEventListener('touchmove', function(e) {
-        let currentY = e.touches[0].clientY;
-        if (window.scrollY === 0 && currentY > lastY) {
-            // User is trying to pull down at the top of the page - block it
-            e.preventDefault();
-        }
-        lastY = currentY;
-    }, {passive: false});
-
     document.addEventListener('contextmenu', event => event.preventDefault());
 
     document.onkeydown = function(e) {
@@ -227,13 +204,14 @@ else:
         st.session_state.logged_in_user = None
         st.rerun()
 
+    # टैब डेफिनिशन फिक्स की गई: एडमिन और स्टूडेंट के वेरिएबल्स को अलग और साफ सुथरा किया गया है
     if user_role == "Admin":
-         tab0, tab1, tab2 =:st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
+        tab0, tab1, tab2 = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
     else:
         tab0, tab2 = st.tabs(["📋 Vacancies & Information", "💬 Doubt Chatbox"])
 
     # --- TAB 1: STUDENT VIEW ---
-    with tabs[0]:
+    with tab0:
         st.subheader("🔍 All Active Job Openings")
         search_query = st.text_input("Search Job Title...", "")
         
@@ -265,3 +243,16 @@ else:
                         st.caption("No pamphlet uploaded.")
             
             st.markdown(f"[🔗 Apply Online Here]({vac['link']})")
+            st.markdown("<hr style='margin: 10px 0 25px 0; border-top: 1px dashed #CCC;'>", unsafe_allow_html=True)
+
+    # --- TAB 2: ADMIN PANEL ---
+    if user_role == "Admin":
+        with tab1:
+            st.subheader("⚙️ Add / Remove Vacancies")
+            
+            with st.form("add_vacancy_form", clear_on_submit=True):
+                st.markdown("### ➕ Add New Vacancy")
+                v_title = st.text_input("Vacancy Title")
+                v_date = st.date_input("Last Date to Apply", datetime.now())
+                v_docs = st.text_area("Required Documents")
+                v_syllabus = st.text_area("Syllabus / Exam Pattern")
