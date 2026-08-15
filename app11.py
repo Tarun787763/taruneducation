@@ -228,12 +228,12 @@ else:
         st.rerun()
 
     if user_role == "Admin":
-        tabs = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
+        with tabs[1] = st.tabs(["📋 Vacancy & Student View", "⚙️ Admin Control Panel", "💬 Doubt Chatbox"])
     else:
         tabs = st.tabs(["📋 Vacancies & Information", "💬 Doubt Chatbox"])
 
     # --- TAB 1: STUDENT VIEW ---
-    with tabs:
+    with tabs[0]:
         st.subheader("🔍 All Active Job Openings")
         search_query = st.text_input("Search Job Title...", "")
         
