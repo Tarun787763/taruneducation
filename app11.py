@@ -40,7 +40,7 @@ def hash_pass(p):
 cur.execute(
     "INSERT OR IGNORE INTO users VALUES(?,?,?)",
     ("admin", hash_pass("admin123"), "Admin")
-
+)
 conn.commit()
 
 # ------------------ CSS ------------------
