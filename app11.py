@@ -1,25 +1,22 @@
 import streamlit as st
 import sqlite3
 import hashlib
-import os
 
-# 1. डेटाबेस सेटअप (पम्फलेट इमेज ब्लॉब स्टोर करने के लिए कॉलम जोड़ा गया)
+# ---------------- DATABASE ----------------
 def init_db():
-    conn = sqlite3.connect("job_hub_premium_v3.db")
+    conn = sqlite3.connect("job_hub_premium_v4.db", check_same_thread=False)
     cur = conn.cursor()
-    
-    # यूज़र्स टेबल
+
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE IF NOT EXISTS users(
             username TEXT PRIMARY KEY,
             password TEXT,
             role TEXT
         )
     """)
-    
-    # वैकेंसियां टेबल (pamphlet_bytes और file_name सपोर्ट के साथ)
+
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS vacancies (
+        CREATE TABLE IF NOT EXISTS vacancies(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
             description TEXT,
@@ -31,211 +28,273 @@ def init_db():
             date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    
-    # डिफ़ॉल्ट सुपर एडमिन
-    admin_username = "admin"
-    admin_password_hash = hashlib.sha256("admin123".encode()).hexdigest()
+
+    admin_pass = hashlib.sha256("admin123".encode()).hexdigest()
+
+    # हमेशा एडमिन अपडेट रहेगा
+    cur.execute("DELETE FROM users WHERE username='admin'")
     cur.execute(
-        "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
-        (admin_username, admin_password_hash, "Admin")
+        "INSERT INTO users VALUES(?,?,?)",
+        ("admin", admin_pass, "Admin")
     )
+
     conn.commit()
     conn.close()
+
 
 def hash_pass(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+
 def login_user(username, password):
-    conn = sqlite3.connect("job_hub_premium_v3.db")
+    conn = sqlite3.connect("job_hub_premium_v4.db")
     cur = conn.cursor()
-    hashed_password = hash_pass(password)
-    cur.execute("SELECT role FROM users WHERE username = ? AND password = ?", (username, hashed_password))
-    result = cur.fetchone()
+
+    cur.execute(
+        "SELECT role FROM users WHERE username=? AND password=?",
+        (username, hash_pass(password))
+    )
+
+    data = cur.fetchone()
     conn.close()
-    return result if result else None
+
+    if data:
+        return data[0]
+    return None
+
 
 def register_user(username, password):
-    conn = sqlite3.connect("job_hub_premium_v3.db")
+    conn = sqlite3.connect("job_hub_premium_v4.db")
     cur = conn.cursor()
-    hashed_password = hash_pass(password)
+
     try:
-        cur.execute("INSERT INTO users (username, password, role) VALUES (?, ?, 'Student')", (username, hashed_password))
+        cur.execute(
+            "INSERT INTO users VALUES(?,?,?)",
+            (username, hash_pass(password), "Student")
+        )
         conn.commit()
-        success = True
-    except sqlite3.IntegrityError:
-        success = False
-    conn.close()
-    return success
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
 
-# वैकेंसियों के साथ पम्फलेट सेव करना
-def add_vacancy(title, description, last_date, apply_link, pamphlet_bytes, file_name):
-    conn = sqlite3.connect("job_hub_premium_v3.db")
+
+def add_vacancy(title, desc, last_date, link, img, name):
+    conn = sqlite3.connect("job_hub_premium_v4.db")
     cur = conn.cursor()
-    cur.execute("INSERT INTO vacancies (title, description, last_date, apply_link, pamphlet_bytes, file_name) VALUES (?, ?, ?, ?, ?, ?)", 
-                (title, description, last_date, apply_link, pamphlet_bytes, file_name))
+
+    cur.execute("""
+    INSERT INTO vacancies
+    (title,description,last_date,apply_link,pamphlet_bytes,file_name)
+    VALUES(?,?,?,?,?,?)
+    """, (title, desc, last_date, link, img, name))
+
     conn.commit()
     conn.close()
 
-def get_all_vacancies(search_query=""):
-    conn = sqlite3.connect("job_hub_premium_v3.db")
+
+def get_vacancies(search=""):
+    conn = sqlite3.connect("job_hub_premium_v4.db")
     cur = conn.cursor()
-    if search_query:
-        cur.execute("SELECT id, title, description, last_date, apply_link, pamphlet_bytes, file_name, views, date_added FROM vacancies WHERE title LIKE ? OR description LIKE ? ORDER BY id DESC", 
-                    (f"%{search_query}%", f"%{search_query}%"))
+
+    if search:
+        cur.execute("""
+        SELECT * FROM vacancies
+        WHERE title LIKE ? OR description LIKE ?
+        ORDER BY id DESC
+        """, (f"%{search}%", f"%{search}%"))
     else:
-        cur.execute("SELECT id, title, description, last_date, apply_link, pamphlet_bytes, file_name, views, date_added FROM vacancies ORDER BY id DESC")
-    vacancies = cur.fetchall()
-    conn.close()
-    return vacancies
+        cur.execute("SELECT * FROM vacancies ORDER BY id DESC")
 
-def increment_views(v_id):
-    conn = sqlite3.connect("job_hub_premium_v3.db")
-    cur = conn.cursor()
-    cur.execute("UPDATE vacancies SET views = views + 1 WHERE id = ?", (v_id,))
-    conn.commit()
+    data = cur.fetchall()
     conn.close()
+    return data
+
 
 def delete_vacancy(v_id):
-    conn = sqlite3.connect("job_hub_premium_v3.db")
+    conn = sqlite3.connect("job_hub_premium_v4.db")
     cur = conn.cursor()
-    cur.execute("DELETE FROM vacancies WHERE id = ?", (v_id,))
+
+    cur.execute("DELETE FROM vacancies WHERE id=?", (v_id,))
+
     conn.commit()
     conn.close()
+
+
+def view(v_id):
+    conn = sqlite3.connect("job_hub_premium_v4.db")
+    cur = conn.cursor()
+
+    cur.execute("UPDATE vacancies SET views=views+1 WHERE id=?", (v_id,))
+
+    conn.commit()
+    conn.close()
+
 
 init_db()
 
-# --- STREAMLIT UI कॉन्फ़िगरेशन ---
-st.set_page_config(page_title="Premium Job & Info Hub", page_icon="🚀", layout="wide")
+# ---------------- UI ----------------
+st.set_page_config(
+    page_title="Information with Tarun",
+    page_icon="🎓",
+    layout="centered"
+)
 
-# परमानेंट लॉगिन स्टेट हैंडलिंग (URL पैरामीटर्स के साथ)
-params = st.query_params
+st.markdown("""
+<style>
+.block-container{
+padding-top:20px;
+padding-bottom:120px;
+max-width:100%;
+}
+.stButton>button{
+border-radius:12px;
+height:48px;
+font-weight:bold;
+}
+</style>
+""", unsafe_allow_html=True)
 
-if "logged_in" not in st.session_state:
-    if "user" in params and "role" in params:
-        st.session_state.logged_in = True
-        st.session_state.username = params["user"]
-        st.session_state.role = params["role"]
+if "login" not in st.session_state:
+    st.session_state.login = False
+    st.session_state.user = ""
+    st.session_state.role = ""
+
+# ---------------- LOGIN ----------------
+if not st.session_state.login:
+
+    st.title("🎓 Information & Vacancy Portal")
+
+    tab = st.radio(
+        "",
+        ["🔐 लॉगिन", "📝 नया रजिस्ट्रेशन"],
+        horizontal=True
+    )
+
+    if tab == "🔐 लॉगिन":
+
+        u = st.text_input("यूज़रनेम")
+        p = st.text_input("पासवर्ड", type="password")
+
+        if st.button("डैशबोर्ड खोलें", use_container_width=True):
+
+            role = login_user(u, p)
+
+            if role:
+                st.session_state.login = True
+                st.session_state.user = u
+                st.session_state.role = role
+                st.rerun()
+            else:
+                st.error("गलत यूज़रनेम या पासवर्ड!")
+
     else:
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.role = ""
 
-# लॉगिन/रजिस्ट्रेशन स्क्रीन
-if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align: center;'>🎓 Information & Vacancy Portal</h1>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        tab1, tab2 = st.tabs(["🔐 सुरक्षित लॉगिन", "📝 नया छात्र रजिस्ट्रेशन"])
-        
-        with tab1:
-            l_user = st.text_input("यूज़रनेम (Username)", key="l_user")
-            l_pass = st.text_input("पासवर्ड (Password)", type="password", key="l_pass")
-            if st.button("डैशबोर्ड खोलें", use_container_width=True, type="primary"):
-                if l_user and l_pass:
-                    role = login_user(l_user, l_pass)
-                    if role:
-                        st.session_state.logged_in = True
-                        st.session_state.username = l_user
-                        st.session_state.role = role
-                        st.query_params["user"] = l_user
-                        st.query_params["role"] = role
-                        st.rerun()
-                    else:
-                        st.error("गलत यूज़रनेम या पासवर्ड!")
-                else:
-                    st.warning("कृपया दोनों फ़ील्ड भरें।")
-                    
-        with tab2:
-            r_user = st.text_input("नया यूज़रनेम चुनें", key="r_user")
-            r_pass = st.text_input("मजबूत पासवर्ड बनाएँ", type="password", key="r_pass")
-            if st.button("खाता बनाएँ", use_container_width=True):
-                if r_user and r_pass:
-                    if register_user(r_user, r_pass):
-                        st.success("रजिस्ट्रेशन सफल! अब लॉगिन करें।")
-                    else:
-                        st.error("यह यूज़रनेम पहले से मौजूद है।")
-                else:
-                    st.warning("कृपया सभी फ़ील्ड भरें।")
+        u = st.text_input("नया यूज़रनेम")
+        p = st.text_input("पासवर्ड", type="password")
 
-# लॉगिन के बाद मुख्य डैशबोर्ड एरिया
+        if st.button("रजिस्टर करें", use_container_width=True):
+
+            if register_user(u, p):
+                st.success("रजिस्ट्रेशन सफल। अब लॉगिन करें।")
+            else:
+                st.error("यूज़रनेम पहले से मौजूद है।")
+
+# ---------------- DASHBOARD ----------------
 else:
-    st.sidebar.markdown(f"### 👤 स्वागत है, *{st.session_state.username}*")
-    st.sidebar.info(f"💼 रोल: {st.session_state.role}")
-    st.sidebar.markdown("---")
-    
-    if st.sidebar.button("🔴 सुरक्षित लॉग आउट (Log Out)", use_container_width=True):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.role = ""
-        st.query_params.clear()
+
+    st.sidebar.success(f"👤 {st.session_state.user}")
+    st.sidebar.write(st.session_state.role)
+
+    if st.sidebar.button("🚪 Logout"):
+        st.session_state.login = False
         st.rerun()
 
-    # --- ए. एडमिन कंट्रोल डैशबोर्ड ---
+    # ---------- ADMIN ----------
     if st.session_state.role == "Admin":
-        st.title("🛠️ प्रीमियम एडमिन कंट्रोल पैनल")
-        
-        adm_tab1, adm_tab2 = st.tabs(["➕ नई भर्ती & पम्फलेट जोड़ें", "⚙️ वैकेंसियां डिलीट करें"])
-        
-        with adm_tab1:
-            st.subheader("📝 नई वैकेंसी और पम्फलेट अपलोड फॉर्म")
-            col_a, col_b = st.columns(2)
-            with col_a:
-                v_title = st.text_input("वैकेंसी का शीर्षक (e.g., Rajasthan Police Bharti 2026)")
-                v_last_date = st.text_input("आवेदन की अंतिम तिथि (e.g., 30-10-2026)")
-            with col_b:
-                v_link = st.text_input("अप्लाई करने का डायरेक्ट लिंक (Optional)")
-                # पम्फलेट/इमेज अपलोडर टूल
-                uploaded_file = st.file_uploader("🖼️ वैकेंसी का पम्फलेट/नोटिफिकेशन इमेज अपलोड करें", type=["png", "jpg", "jpeg"])
-                
-            v_desc = st.text_area("भर्ती की पूरी जानकारी (शॉर्ट में विवरण लिखें)")
-            
-            if st.button("🌐 वैकेंसी लाइव (Publish) करें", type="primary"):
-                if v_title and v_desc and v_last_date:
-                    file_bytes = None
-                    file_name = None
-                    if uploaded_file is not None:
-                        file_bytes = uploaded_file.read()
-                        file_name = uploaded_file.name
-                    
-                    add_vacancy(v_title, v_desc, v_last_date, v_link, file_bytes, file_name)
-                    st.success("बधाई हो! पम्फलेट के साथ नई वैकेंसी पोर्टल पर लाइव हो चुकी है।")
-                    st.rerun()
-                else:
-                    st.warning("कृपया शीर्षक, विवरण और अंतिम तिथि ज़रूर भरें।")
-                    
-        with adm_tab2:
-            st.subheader("📋 एक्टिव वैकेंसियों की सूची")
-            adm_vacancies = get_all_vacancies()
-            if adm_vacancies:
-                for v_id, title, desc, last_date, link, pb, fn, views, date_added in adm_vacancies:
-                    col_x, col_y = st.columns([4,1])
-                    with col_x:
-                        st.markdown(f"*📌 {title}* (अंतिम तिथि: {last_date}) | 👁️ व्यूज: {views} {'🖼️ (पम्फलेट अटैच है)' if pb else ''}")
-                    with col_y:
-                        if st.button("🗑️ डिलीट", key=f"del_{v_id}"):
-                            delete_vacancy(v_id)
-                            st.error("वैकेंसी हटा दी गई!")
-                            st.rerun()
-                    st.markdown("---")
-            else:
-                st.info("फिलहाल पोर्टल पर कोई वैकेंसी नहीं है।")
 
-    # --- बी. स्टूडेंट लाइव डैशबोर्ड ---
+        st.title("🛠 Admin Panel")
+
+        mode = st.radio(
+            "",
+            ["➕ Vacancy Add", "🗑 Delete Vacancy"],
+            horizontal=True
+        )
+
+        if mode == "➕ Vacancy Add":
+
+            title = st.text_input("Vacancy Title")
+            last = st.text_input("Last Date")
+            link = st.text_input("Apply Link")
+            file = st.file_uploader(
+                "Pamphlet Upload",
+                type=["jpg","jpeg","png"]
+            )
+            desc = st.text_area("Description")
+
+            if st.button("Publish Vacancy", use_container_width=True):
+
+                if title and desc and last:
+
+                    img = file.read() if file else None
+                    name = file.name if file else None
+
+                    add_vacancy(title, desc, last, link, img, name)
+
+                    st.success("Vacancy Publish Successfully")
+                    st.rerun()
+
+                else:
+                    st.warning("सभी जरूरी जानकारी भरें।")
+
+        else:
+
+            for v in get_vacancies():
+
+                st.markdown(f"### {v[1]}")
+                st.caption(v[3])
+
+                if st.button("Delete", key=v[0]):
+                    delete_vacancy(v[0])
+                    st.rerun()
+
+                st.divider()
+
+    # ---------- STUDENT ----------
     else:
-        st.title("🎯 लाइव स्टूडेंट वैकेंसी डैशबोर्ड")
-        
-        search_query = st.text_input("🔍 अपनी मनपसंद जॉब का नाम खोजें...", "")
-        vacancies_list = get_all_vacancies(search_query)
-        
-        if vacancies_list:
-            for v_id, title, desc, last_date, link, p_bytes, f_name, views, date_added in vacancies_list:
-                increment_views(v_id)
-                
-                with st.container(border=True):
-                    col_l, col_r = st.columns([3,1])
-                    with col_l:
-                        st.markdown(f"## 📌 {title}")
-                        st.caption(f"📅 पोस्ट: {date_added} | 👁️ {views+1} छात्र देख चुके हैं")
-                    with col_r:
-                        st.markdown(f"<h4 style='color: red; text-align: right;'>⏳ अंतिम तिथि: {last_date}</h4>", unsafe_allow_html=True)
+
+        st.title("📢 Live Vacancies")
+
+        s = st.text_input("Search Vacancy")
+
+        for v in get_vacancies(s):
+
+            view(v[0])
+
+            with st.container(border=True):
+
+                st.subheader(v[1])
+                st.write(f"**Last Date:** {v[3]}")
+                st.write(v[2])
+
+                if v[5]:
+                    st.image(v[5], use_container_width=True)
+
+                    st.download_button(
+                        "📥 Download Pamphlet",
+                        data=v[5],
+                        file_name=v[6],
+                        mime="image/jpeg",
+                        key=f"d{v[0]}",
+                        use_container_width=True
+                    )
+
+                if v[4]:
+                    st.link_button(
+                        "Apply Now",
+                        v[4],
+                        use_container_width=True
+                    )
+
+                st.caption(f"👁 {v[7]+1} Views")
